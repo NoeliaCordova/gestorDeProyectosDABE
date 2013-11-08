@@ -1,0 +1,457 @@
+//formulario de inicio
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Gestor_de_Proyectos
+{
+    public partial class FormInicio : Form
+    {
+        public FormInicio()
+        {
+            InitializeComponent();
+        }
+
+        private void buttonProyectos_Click(object sender, EventArgs e)
+        {
+            FormProyectos a = new FormProyectos();
+            a.ShowDialog();
+        }
+    }
+}
+
+// formulario principal
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Gestor_de_Proyectos
+{
+    public partial class FormPrincipal : Form
+    {
+        public FormPrincipal()
+        {
+            InitializeComponent();
+        }
+
+        private void buttonIngresar_Click(object sender, EventArgs e)
+        {
+            if ((textBoxUsuario.Text == "usuario") && (textBoxContraseña.Text == "1234"))
+            {
+                FormInicio pantallaInicio = new FormInicio();
+                pantallaInicio.ShowDialog();
+                this.Close();
+            }
+            else
+            {
+                MessageBox.Show("El nombre de usuario o la contraseña es incorrecta.");
+            }
+        }
+
+        private void textBoxUsuario_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == 13)
+            {
+                this.buttonIngresar_Click(sender, e);
+            }
+        }
+    }
+}
+//formulario de proyecto
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Gestor_de_Proyectos
+{
+    public partial class FormProyectos : Form
+    {
+        private Proyecto proyecto;
+        public FormProyectos()
+        {
+            InitializeComponent();
+
+            this.proyecto = new Proyecto();
+        }
+
+        public void Actualizar()
+        {
+            Nuevo();
+            ListarGrilla();
+        }
+
+        public void Nuevo()
+        {
+            this.proyecto = new Proyecto();
+
+            textBoxNombreProyecto.Text = "";
+            textBoxDescripcion.Text = "";
+            dateTimePickerInicio.ResetText();
+            dateTimePickerFin.ResetText();
+        }
+
+        public void ListarGrilla()
+        {
+            try
+            {
+                List<Proyecto> lista = proyecto.ObtenerLista();
+
+                if (lista.Count > 0)
+                {
+                    dataGridViewProyectos.RowCount = lista.Count;
+
+                    for (int i = 0; i < lista.Count(); i++)
+                    {
+                        dataGridViewProyectos.Rows[i].Cells[ColCodigo.Name].Value = lista[i].Codigo;
+                        dataGridViewProyectos.Rows[i].Cells[ColNombre.Name].Value = lista[i].Nombre;
+                        dataGridViewProyectos.Rows[i].Cells[ColPeriodo.Name].Value = lista[i].Periodo();
+                        dataGridViewProyectos.Rows[i].Cells[ColEstado.Name].Value = lista[i].EstadoStr();
+                    }
+                }
+                else
+                {
+                    dataGridViewProyectos.RowCount = 1;
+                    dataGridViewProyectos.Rows[0].Cells[ColCodigo.Name].Value = null;
+                    dataGridViewProyectos.Rows[0].Cells[ColNombre.Name].Value = null;
+                    dataGridViewProyectos.Rows[0].Cells[ColPeriodo.Name].Value = null;
+                    dataGridViewProyectos.Rows[0].Cells[ColEstado.Name].Value = null;
+                }
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(error.Message);
+            }
+        }
+
+        private void buttonAgregar_Click(object sender, EventArgs e)
+        {
+            Proyecto proyecto = new Proyecto();
+
+            proyecto.Nombre = textBoxNombreProyecto.Text;
+            proyecto.FechaInicial = dateTimePickerInicio.Value;
+            proyecto.FechaFinal = dateTimePickerFin.Value;
+            proyecto.Descripcion = textBoxDescripcion.Text;
+
+            proyecto.AsignarEstado();
+
+            if (proyecto.FechaFinal > proyecto.FechaInicial)
+            {
+                proyecto.insertar();
+                Actualizar();
+            }
+            else
+            {
+                MessageBox.Show("Las fechas estan mal.");
+            }
+        }
+
+        private void FormProyectos_Shown(object sender, EventArgs e)
+        {
+            this.Actualizar();
+        }
+    }
+}
+
+//Clase Persona
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Gestor_de_Proyectos
+{
+    class Persona
+    {
+        private int codigo;
+        private string nombre;
+        private string apPaterno;
+        private string apMaterno;
+        private string telefono;
+        private string celular;
+        private string correoElectronico;
+
+        public int Codigo
+        {
+            get { return codigo; }
+            set { codigo = value; }
+        }
+        public string Nombre
+        {
+            get { return nombre; }
+            set { nombre = value; }
+        }
+        public string ApPaterno
+        {
+            get { return apPaterno; }
+            set { apPaterno = value; }
+        }
+        public string ApMaterno
+        {
+            get { return apMaterno; }
+            set { apMaterno = value; }
+        }
+        public string Telefono
+        {
+            get { return telefono; }
+            set { telefono = value; }
+        }
+        public string Celular
+        {
+            get { return celular; }
+            set { celular = value; }
+        }
+        public string CorreoElectronico
+        {
+            get { return correoElectronico; }
+            set { correoElectronico = value; }
+        }
+    }
+}
+//Clase Proyecto
+using System;
+using System.Collections.Generic;
+using System.Data.OleDb;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Gestor_de_Proyectos
+{
+    class Proyecto : ConexionAccess
+    {
+        private int codigo;
+
+        public int Codigo
+        {
+            get { return codigo; }
+            set { codigo = value; }
+        }
+        private string nombre;
+
+        public string Nombre
+        {
+            get { return nombre; }
+            set { nombre = value; }
+        }
+        private DateTime fechaInicial;
+
+        public DateTime FechaInicial
+        {
+            get { return fechaInicial; }
+            set { fechaInicial = value; }
+        }
+        private DateTime fechaFinal;
+
+        public DateTime FechaFinal
+        {
+            get { return fechaFinal; }
+            set { fechaFinal = value; }
+        }
+        private string descripcion;
+
+        public string Descripcion
+        {
+            get { return descripcion; }
+            set { descripcion = value; }
+        }
+        public bool Estado;
+
+        public void AsignarEstado()
+        {
+            this.Estado = true;
+        }
+
+        public string EstadoStr()
+        {
+            if (this.Estado == true)
+            {
+                return "Activo";
+            }
+            else
+            {
+                return "Inactivo";
+            }
+        }
+
+        public Proyecto()
+        {
+            this.codigo = 0;
+            this.nombre = "";
+            this.fechaInicial = new DateTime();
+            this.fechaFinal = new DateTime();
+            this.descripcion = "";
+            this.Estado = false;
+        }
+
+        public string Periodo()
+        {
+            string periodo = "";
+
+            if (this.fechaInicial.Month <= 7)
+            {
+                periodo = "SEM I - " + this.fechaInicial.Year.ToString();
+            }
+            else
+            {
+                periodo = "SEM II - " + this.fechaInicial.Year.ToString();
+            }
+
+            return periodo;
+        }
+
+        public void insertar()
+        {
+            try
+            {
+                string query = "INSERT INTO " + "Proyectos" + " (nombre, fecha_ini, fecha_fin, descripcion, estado) VALUES(@Nombre, @FechaIni, @FechaFin, @Descripcion, @Estado)";
+                //string query = "INSERT INTO " + "Proyectos" + " (cod_proyecto, nombre, fecha_ini, fecha_fin, descripcion, estado) VALUES(@Codigo, @Nombre, @FechaIni, @FechaFin, @Descripcion, @Estado)";
+                comando = new OleDbCommand(query, conexion);
+
+                //comando.Parameters.Add(new OleDbParameter("@Codigo", OleDbType.Integer));
+                comando.Parameters.Add(new OleDbParameter("@Nombre", OleDbType.VarWChar, 50));
+                comando.Parameters.Add(new OleDbParameter("@FechaIni", OleDbType.Date));
+                comando.Parameters.Add(new OleDbParameter("@FechaFin", OleDbType.Date));
+                comando.Parameters.Add(new OleDbParameter("@Descripcion", OleDbType.VarWChar, 200));
+                comando.Parameters.Add(new OleDbParameter("@Estado", OleDbType.Boolean));
+
+                //comando.Parameters["@Codigo"].Value = this.codigo;
+                comando.Parameters["@Nombre"].Value = this.nombre;
+                comando.Parameters["@FechaIni"].Value = this.fechaInicial;
+                comando.Parameters["@FechaFin"].Value = this.fechaFinal;
+                comando.Parameters["@Descripcion"].Value = this.descripcion;
+                comando.Parameters["@Estado"].Value = this.Estado;
+
+                comando.Connection.Open();
+                comando.ExecuteNonQuery();
+            }
+            catch (Exception error)
+            {
+                //throw error;
+            }
+            finally
+            {
+                if (conexion != null)
+                {
+                    conexion.Close();
+                }
+            }
+        }
+
+        public List<Proyecto> ObtenerLista()
+        {
+            List<Proyecto> lista = new List<Proyecto>();
+            try
+            {
+                comando.CommandText = "SELECT * FROM Proyectos";
+                comando.CommandType = System.Data.CommandType.Text;
+                conexion.Open();
+
+                OleDbDataReader lector = comando.ExecuteReader();
+
+                while (lector.Read())
+                {
+                    Proyecto p = new Proyecto();
+
+                    p.Codigo = Convert.ToInt32(lector["cod_proyecto"].ToString());
+                    p.Nombre = lector["nombre"].ToString();
+                    p.FechaInicial = Convert.ToDateTime(lector["fecha_ini"].ToString());
+                    p.FechaFinal = Convert.ToDateTime(lector["fecha_fin"].ToString());
+                    p.descripcion = lector["descripcion"].ToString();
+                    p.Estado = Convert.ToBoolean(lector["estado"].ToString());
+
+                    lista.Add(p);
+                }
+
+                return lista;
+            }
+            catch (Exception error)
+            {
+                throw error;
+            }
+            finally
+            {
+                if (conexion != null)
+                {
+                    conexion.Close();
+                }
+            }
+        }
+    }
+}
+
+//Clase ProgramaPrincipal
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Gestor_de_Proyectos
+{
+    static class Program
+    {
+        /// <summary>
+        /// Punto de entrada principal para la aplicación.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FormPrincipal());
+        }
+    }
+}
+//Clase ConexionAccess
+
+using System;
+using System.Collections.Generic;
+using System.Data.OleDb;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Gestor_de_Proyectos
+{
+    class ConexionAccess
+    {
+        protected OleDbConnection conexion;
+        protected OleDbCommand comando;
+
+        private void Conectar()
+        {
+            conexion = new OleDbConnection("Provider=Microsoft.ACE.OLEDB.12.0;Data Source=C:\\Gestor de Proyectos\\DBGESTOR.accdb;Persist Security Info=True");
+            comando = conexion.CreateCommand();
+        }
+
+        public ConexionAccess()
+        {
+            Conectar();
+        }
+    }
+}
+
+
+
+
